@@ -19,7 +19,10 @@ public abstract class SingleFragmentActivity extends FragmentActivity {
 
         FragmentManager fm = getSupportFragmentManager();
 
+        // try to get the current fragment in the container
         Fragment fragment = fm.findFragmentById(R.id.fragment_container);
+        // if there is not inside this container
+        // add the new fragment
         if(fragment == null) {
             fragment = createFragment();
             fm.beginTransaction()
