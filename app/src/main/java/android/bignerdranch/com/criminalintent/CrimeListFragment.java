@@ -8,6 +8,9 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
@@ -25,6 +28,14 @@ public class CrimeListFragment extends Fragment {
 
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mAdapter;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // tell to the FragmentManager to send calbacks from Activity to
+        // the fragment
+        setHasOptionsMenu(true);
+    }
 
     @Nullable
     @Override
@@ -45,6 +56,9 @@ public class CrimeListFragment extends Fragment {
         updateUI();
     }
 
+    // ======================================================================================
+    // Update the UI if the activity became on top of the stack again
+    // ======================================================================================
     private void updateUI() {
         CrimeLab crimeLab = CrimeLab.getInstance(getActivity());
         List<Crime> crimes = crimeLab.getCrimes();
@@ -65,6 +79,32 @@ public class CrimeListFragment extends Fragment {
         }
     }
 
+    // ======================================================================================
+    // ToolBar menu and actions
+    // ======================================================================================
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_crime_list, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_new_crime:
+                Crime crime = new Crime();
+                CrimeLab.getInstance(getActivity()).addCrime(crime);
+                Intent it = CrimePagerActivity.newIntent(getActivity(), crime.getId());
+                startActivity(it);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    // ======================================================================================
+    // ReciclerView Holder and Adapter
+    // ======================================================================================
     private class CrimeHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private Crime mCrime;
         private TextView mTitleTextView;
@@ -117,5 +157,6 @@ public class CrimeListFragment extends Fragment {
         public int getItemCount() {
             return mCrimes.size();
         }
+
     }
 }
