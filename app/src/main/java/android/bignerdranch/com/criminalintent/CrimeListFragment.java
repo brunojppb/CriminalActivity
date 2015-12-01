@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -69,9 +70,19 @@ public class CrimeListFragment extends Fragment {
         else {
             mAdapter.notifyDataSetChanged();
         }
-
     }
 
+    // update toolbar subtitle
+    public void updateSubtitle() {
+        int crimeCount = CrimeLab.getInstance(getActivity()).getCrimes().size();
+        String subtitle = getString(R.string.subtitle_format, crimeCount);
+        AppCompatActivity activity = (AppCompatActivity) getActivity();
+        activity.getSupportActionBar().setSubtitle(subtitle);
+    }
+
+    // ======================================================================================
+    // Get results from next activity
+    // ======================================================================================
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == REQUEST_CRIME) {
@@ -97,6 +108,11 @@ public class CrimeListFragment extends Fragment {
                 Intent it = CrimePagerActivity.newIntent(getActivity(), crime.getId());
                 startActivity(it);
                 return true;
+
+            case R.id.menu_item_show_subtitle:
+                updateSubtitle();
+                return true;
+
             default:
                 return super.onOptionsItemSelected(item);
         }
