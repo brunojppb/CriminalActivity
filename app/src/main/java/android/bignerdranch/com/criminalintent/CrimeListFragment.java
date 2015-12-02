@@ -26,10 +26,16 @@ import java.util.List;
 public class CrimeListFragment extends Fragment {
 
     private static final int REQUEST_CRIME = 1;
+    private static final String SAVED_SUBTITLE_VISIBLE = "subtitle";
 
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mAdapter;
+    private boolean mSubtitleVisible;
 
+
+    // ======================================================================================
+    // Fragment Life cycle
+    // ======================================================================================
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,9 +52,20 @@ public class CrimeListFragment extends Fragment {
         mCrimeRecyclerView = (RecyclerView) view.findViewById(R.id.crime_recicle_view);
         mCrimeRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
 
+        // save contents against rotation
+        if(savedInstanceState != null) {
+            mSubtitleVisible = savedInstanceState.getBoolean(SAVED_SUBTITLE_VISIBLE);
+        }
+
         updateUI();
 
         return view;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(SAVED_SUBTITLE_VISIBLE, mSubtitleVisible);
     }
 
     @Override
@@ -56,6 +73,8 @@ public class CrimeListFragment extends Fragment {
         super.onResume();
         updateUI();
     }
+
+
 
     // ======================================================================================
     // Update the UI if the activity became on top of the stack again
@@ -70,12 +89,17 @@ public class CrimeListFragment extends Fragment {
         else {
             mAdapter.notifyDataSetChanged();
         }
+
+        updateSubtitle();
     }
 
     // update toolbar subtitle
     public void updateSubtitle() {
         int crimeCount = CrimeLab.getInstance(getActivity()).getCrimes().size();
         String subtitle = getString(R.string.subtitle_format, crimeCount);
+        if(!mSubtitleVisible){
+            subtitle = null;
+        }
         AppCompatActivity activity = (AppCompatActivity) getActivity();
         activity.getSupportActionBar().setSubtitle(subtitle);
     }
@@ -97,6 +121,13 @@ public class CrimeListFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.fragment_crime_list, menu);
+        MenuItem subtitleItem = menu.findItem(R.id.menu_item_show_subtitle);
+        if(mSubtitleVisible) {
+            subtitleItem.setTitle(R.string.hide_subtitle);
+        }
+        else {
+            subtitleItem.setTitle(R.string.show_subtitle);
+        }
     }
 
     @Override
@@ -110,7 +141,10 @@ public class CrimeListFragment extends Fragment {
                 return true;
 
             case R.id.menu_item_show_subtitle:
+                mSubtitleVisible = !mSubtitleVisible;
                 updateSubtitle();
+                // perform a menu invalidation and menu recriation
+                getActivity().invalidateOptionsMenu();
                 return true;
 
             default:
