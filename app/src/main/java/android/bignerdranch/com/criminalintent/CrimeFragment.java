@@ -9,9 +9,11 @@ import android.support.v4.app.FragmentManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -52,10 +54,32 @@ public class CrimeFragment extends Fragment {
         getActivity().setResult(Activity.RESULT_OK, null);
     }
 
+    // =====================================================================
+    // Options Menu
+    // =====================================================================
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.crime_menu, menu);
+        MenuItem deleteItem = menu.findItem(R.id.menu_item_delete_Crime);
+        if(deleteItem != null){
+            Log.d("Item OK", "ITEM");
+        }else{
+            Log.d("Item NULL", "ITEM");
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_delete_Crime:
+                CrimeLab.getInstance(getActivity()).deleteCrime(mCrime);
+                getActivity().finish();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -63,6 +87,9 @@ public class CrimeFragment extends Fragment {
         super.onCreate(savedInstanceState);
         UUID crimeId = (UUID) getArguments().getSerializable(ARG_CRIME_ID);
         mCrime = CrimeLab.getInstance(getActivity()).getCrime(crimeId);
+        // tell to the FragmentManager to send calbacks from Activity to
+        // the fragment
+        setHasOptionsMenu(true);
     }
 
     // With fragments, we do not inflate our view inside the OnCreate Method

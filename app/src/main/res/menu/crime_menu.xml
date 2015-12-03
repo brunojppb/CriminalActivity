@@ -4,6 +4,7 @@
     <!-- The xmlns:app uses the AppCompat library to work with android SDK 16+ -->
     <item
         android:id="@+id/menu_item_delete_Crime"
+        android:icon="@drawable/ic_trash_can"
         android:title="@string/delete_crime"
         app:showAsAction="ifRoom|withText" />
 
