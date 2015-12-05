@@ -92,6 +92,12 @@ public class CrimeFragment extends Fragment {
         setHasOptionsMenu(true);
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        CrimeLab.getInstance(getActivity()).updateCrime(mCrime);
+    }
+
     // With fragments, we do not inflate our view inside the OnCreate Method
     // there is a special method to do that for us.
     //this method will inflate the view and return the view to the hosting activity(the container)
