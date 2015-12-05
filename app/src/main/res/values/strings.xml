@@ -17,4 +17,6 @@
         <item quantity="other">%1$s crimes</item>
     </plurals>
     <string name="no_crimes">There are no crimes</string>
+    <string name="crime_suspect_text">Choose Suspect</string>
+    <string name="crime_report_text">Crime Report</string>
 </resources>
