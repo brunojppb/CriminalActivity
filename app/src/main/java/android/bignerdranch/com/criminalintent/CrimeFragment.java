@@ -2,10 +2,15 @@ package android.bignerdranch.com.criminalintent;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.ShareCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
@@ -20,6 +25,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -30,17 +37,22 @@ import java.util.UUID;
  */
 public class CrimeFragment extends Fragment {
 
-    private static final String ARG_CRIME_ID = "crime_id";
-    private static final String DIALOG_DATE =  "DialogDate";
-    private static final String DIALOG_TIME =  "DialogTime";
-    private static final int REQUEST_DATE = 0;
-    private static final int REQUEST_TIME = 1;
+    private static final String ARG_CRIME_ID    = "crime_id";
+    private static final String DIALOG_DATE     =  "DialogDate";
+    private static final String DIALOG_TIME     =  "DialogTime";
+    private static final int REQUEST_DATE       = 0;
+    private static final int REQUEST_TIME       = 1;
+    private static final int REQUEST_CONTACT    = 2;
 
     private Crime mCrime;
     private EditText mTitleField;
     private Button mDateButton;
     private Button mTimeButton;
     private CheckBox mCheckBox;
+    private Button mSendReportButton;
+    private Button mAddSuspectButton;
+    private ImageButton mCameraButton;
+    private ImageView mPhotoView;
 
     public static CrimeFragment newInstance(UUID crimeId) {
         Bundle args = new Bundle();
@@ -55,32 +67,8 @@ public class CrimeFragment extends Fragment {
     }
 
     // =====================================================================
-    // Options Menu
+    // Creation life cycle
     // =====================================================================
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.crime_menu, menu);
-        MenuItem deleteItem = menu.findItem(R.id.menu_item_delete_Crime);
-        if(deleteItem != null){
-            Log.d("Item OK", "ITEM");
-        }else{
-            Log.d("Item NULL", "ITEM");
-        }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menu_item_delete_Crime:
-                CrimeLab.getInstance(getActivity()).deleteCrime(mCrime);
-                getActivity().finish();
-                return true;
-
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -112,8 +100,48 @@ public class CrimeFragment extends Fragment {
         mDateButton = (Button) v.findViewById(R.id.crime_date);
         mCheckBox = (CheckBox) v.findViewById(R.id.crime_solved);
         mTimeButton = (Button) v.findViewById(R.id.crime_time);
+        mSendReportButton = (Button) v.findViewById(R.id.crime_report);
+        mAddSuspectButton = (Button) v.findViewById(R.id.crime_suspect);
+        mCameraButton = (ImageButton) v.findViewById(R.id.crime_camera);
+        mPhotoView = (ImageView) v.findViewById(R.id.crime_photo);
 
         mTitleField.setText(mCrime.getTitle());
+
+
+        //set an implicit intent to send the report
+        //ask the user which app he would like to use
+        mSendReportButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent it = new Intent(Intent.ACTION_SEND);
+                it.setType("text/plain");
+                it.putExtra(Intent.EXTRA_TEXT, getCrimeReport());
+                it.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.crime_report_subject));
+                it.createChooser(it, getString(R.string.send_report));
+                startActivity(it);
+            }
+        });
+
+
+        //Set a implicit intent to get a contact and set as the suspect
+        final Intent pickContactIt = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+        // Verify if the device has a contact app to perform queries
+        // if not, the app will crash
+        PackageManager packageManager = getActivity().getPackageManager();
+        if(packageManager.resolveActivity(pickContactIt, PackageManager.MATCH_DEFAULT_ONLY) == null){
+            mAddSuspectButton.setEnabled(false);
+            mAddSuspectButton.setText(R.string.no_contacts_app);
+        }
+
+        mAddSuspectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(pickContactIt, REQUEST_CONTACT);
+            }
+        });
+        if(mCrime.getSuspect() != null){
+            mAddSuspectButton.setText(mCrime.getSuspect());
+        }
 
         // Set a listener to the text field to respond to events
         // before the text changes, when the text changes and after the text changes
@@ -170,6 +198,36 @@ public class CrimeFragment extends Fragment {
         return v;
     }
 
+    // =====================================================================
+    // Options Menu
+    // =====================================================================
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.crime_menu, menu);
+        MenuItem deleteItem = menu.findItem(R.id.menu_item_delete_Crime);
+        if(deleteItem != null){
+            Log.d("Item OK", "ITEM");
+        }else{
+            Log.d("Item NULL", "ITEM");
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_delete_Crime:
+                CrimeLab.getInstance(getActivity()).deleteCrime(mCrime);
+                getActivity().finish();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -190,6 +248,32 @@ public class CrimeFragment extends Fragment {
             mCrime.setDate(crimeCalendar.getTime());
             mTimeButton.setText(this.timeAsString(mCrime.getDate()));
         }
+
+        if(requestCode == REQUEST_CONTACT && data != null) {
+            Uri contactUri = data.getData();
+            //specify which fields you want your query to return values for
+            String[] queryFields = new String[] { ContactsContract.Contacts.DISPLAY_NAME };
+            // Perform your query
+            Cursor c = getActivity()
+                    .getContentResolver()
+                    .query(contactUri, queryFields, null, null, null);
+
+            try {
+                //Double-check that actually get results
+                if(c.getCount() == 0) return;
+
+                //Pull out the first column of the first row of data
+                //which is the suspect name
+                c.moveToFirst();
+                String suspect = c.getString(0);
+                mCrime.setSuspect(suspect);
+                mAddSuspectButton.setText(suspect);
+            }
+            // Always close the cursor
+            finally {
+                c.close();
+            }
+        }
     }
 
     private String timeAsString(Date date) {
@@ -202,5 +286,32 @@ public class CrimeFragment extends Fragment {
         // set the text of the button with actual date
         DateFormat dateFormatter = new DateFormat();
         return dateFormatter.format("EEEE M dd, yyyy", date).toString();
+    }
+
+    private String getCrimeReport() {
+        String solvedString = null;
+        if(mCrime.isSolved()) {
+            solvedString = getString(R.string.crime_report_solved);
+        }
+        else{
+            solvedString = getString(R.string.crime_report_unsolved);
+        }
+
+        String dateFormat = "EEE, MMM dd";
+        String dateString = DateFormat.format(dateFormat, mCrime.getDate()).toString();
+
+        String suspect = mCrime.getSuspect();
+        if(suspect == null) {
+            suspect = getString(R.string.crime_report_no_suspect);
+        }
+        else {
+            suspect = getString(R.string.crime_report_suspect, suspect);
+        }
+
+        String report = getString(R.string.crime_report,
+                mCrime.getTitle(), dateString, solvedString, suspect);
+
+        return report;
+
     }
 }
