@@ -1,12 +1,16 @@
 package android.bignerdranch.com.criminalintent;
 
 import android.app.Activity;
+import android.bignerdranch.com.criminalintent.util.PictureUtils;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -28,6 +32,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import java.io.File;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
@@ -43,8 +48,11 @@ public class CrimeFragment extends Fragment {
     private static final int REQUEST_DATE       = 0;
     private static final int REQUEST_TIME       = 1;
     private static final int REQUEST_CONTACT    = 2;
+    private static final int REQUEST_PHOTO      = 3;
 
     private Crime mCrime;
+    private File mPhotoFile;
+
     private EditText mTitleField;
     private Button mDateButton;
     private Button mTimeButton;
@@ -75,6 +83,7 @@ public class CrimeFragment extends Fragment {
         super.onCreate(savedInstanceState);
         UUID crimeId = (UUID) getArguments().getSerializable(ARG_CRIME_ID);
         mCrime = CrimeLab.getInstance(getActivity()).getCrime(crimeId);
+        mPhotoFile = CrimeLab.getInstance(getActivity()).getPhotoFile(mCrime);
         // tell to the FragmentManager to send calbacks from Activity to
         // the fragment
         setHasOptionsMenu(true);
@@ -123,8 +132,10 @@ public class CrimeFragment extends Fragment {
         });
 
 
-        //Set a implicit intent to get a contact and set as the suspect
+        // Set an implicit intent to get a contact and set as the suspect
         final Intent pickContactIt = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+        // Set an implicit intent to get the camera app and take pictures for us
+        final Intent takePicturesIt = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Verify if the device has a contact app to perform queries
         // if not, the app will crash
         PackageManager packageManager = getActivity().getPackageManager();
@@ -132,6 +143,20 @@ public class CrimeFragment extends Fragment {
             mAddSuspectButton.setEnabled(false);
             mAddSuspectButton.setText(R.string.no_contacts_app);
         }
+
+        // test if the app can take pictues, checking for the file path and camera app
+        if(mPhotoFile != null && takePicturesIt.resolveActivity(packageManager) != null){
+            Uri uri = Uri.fromFile(mPhotoFile);
+            takePicturesIt.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+        }
+
+        mCameraButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(takePicturesIt, REQUEST_PHOTO);
+            }
+        });
+
 
         mAddSuspectButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -142,6 +167,8 @@ public class CrimeFragment extends Fragment {
         if(mCrime.getSuspect() != null){
             mAddSuspectButton.setText(mCrime.getSuspect());
         }
+
+        updatePhotoView();
 
         // Set a listener to the text field to respond to events
         // before the text changes, when the text changes and after the text changes
@@ -274,6 +301,10 @@ public class CrimeFragment extends Fragment {
                 c.close();
             }
         }
+
+        if(requestCode == REQUEST_PHOTO) {
+            updatePhotoView();
+        }
     }
 
     private String timeAsString(Date date) {
@@ -286,6 +317,16 @@ public class CrimeFragment extends Fragment {
         // set the text of the button with actual date
         DateFormat dateFormatter = new DateFormat();
         return dateFormatter.format("EEEE M dd, yyyy", date).toString();
+    }
+
+    public void updatePhotoView() {
+        if(mPhotoFile  == null || !mPhotoFile.exists()) {
+            mPhotoView.setImageDrawable(null);
+        }
+        else {
+            Bitmap bitmap = PictureUtils.getScaledBitmap(mPhotoFile.getPath(), getActivity());
+            mPhotoView.setImageBitmap(bitmap);
+        }
     }
 
     private String getCrimeReport() {

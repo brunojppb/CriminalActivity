@@ -26,4 +26,10 @@
         </activity>
     </application>
 
+    <!-- USER PERMISSIONS -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="18"/>
+
+    <!-- APP FEATURES -->
+    <uses-feature android:name="android.hardware.camera2" android:required="false"/>
+
 </manifest>
