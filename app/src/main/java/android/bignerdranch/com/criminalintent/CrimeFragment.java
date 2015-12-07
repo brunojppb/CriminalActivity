@@ -52,6 +52,7 @@ public class CrimeFragment extends Fragment {
 
     private Crime mCrime;
     private File mPhotoFile;
+    private Callbacks mCallbacks;
 
     private EditText mTitleField;
     private Button mDateButton;
@@ -181,6 +182,7 @@ public class CrimeFragment extends Fragment {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 mCrime.setTitle(s.toString());
+                updateCrime();
             }
 
             @Override
@@ -220,6 +222,7 @@ public class CrimeFragment extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 mCrime.setSolved(isChecked);
+                updateCrime();
             }
         });
         return v;
@@ -262,6 +265,7 @@ public class CrimeFragment extends Fragment {
         if (requestCode == REQUEST_DATE) {
             Date date = (Date) data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
             mCrime.setDate(date);
+            updateCrime();
             mDateButton.setText(this.dateAsString(date));
         }
         if (requestCode == REQUEST_TIME) {
@@ -273,6 +277,7 @@ public class CrimeFragment extends Fragment {
             crimeCalendar.set(Calendar.HOUR, timeCalendar.get(Calendar.HOUR));
             crimeCalendar.set(Calendar.MINUTE, timeCalendar.get(Calendar.MINUTE));
             mCrime.setDate(crimeCalendar.getTime());
+            updateCrime();
             mTimeButton.setText(this.timeAsString(mCrime.getDate()));
         }
 
@@ -303,6 +308,7 @@ public class CrimeFragment extends Fragment {
         }
 
         if(requestCode == REQUEST_PHOTO) {
+            updateCrime();
             updatePhotoView();
         }
     }
@@ -354,5 +360,26 @@ public class CrimeFragment extends Fragment {
 
         return report;
 
+    }
+
+    public void updateCrime() {
+        CrimeLab.getInstance(getActivity()).updateCrime(mCrime);
+        mCallbacks.onCrimeUpdated(mCrime);
+    }
+
+    public interface Callbacks {
+        void onCrimeUpdated(Crime crime);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mCallbacks = (Callbacks) activity;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mCallbacks = null;
     }
 }

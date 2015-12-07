@@ -1,5 +1,6 @@
 package android.bignerdranch.com.criminalintent;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -31,7 +32,32 @@ public class CrimeListFragment extends Fragment {
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mAdapter;
     private boolean mSubtitleVisible;
+    private Callbacks mCallbacks;
 
+    // ======================================================================================
+    // Delegate tasks to the hosting activity
+    // - This the way one Fragment delegates tasks to the hosting activity.
+    // - The Fragment should be self-contained, so it should not know how to send fragments
+    // - to other containers. This is the Hosting activity job
+    // - Using the Callbacks inteface, the Fragment just call those methods and leave the
+    // - job to be done by the hosting activity, without any information about how the
+    // - host activity is doing its job.
+    // ======================================================================================
+    public interface Callbacks {
+        void onCrimeSelected(Crime crime);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mCallbacks = (Callbacks) activity;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mCallbacks = null;
+    }
 
     // ======================================================================================
     // Fragment Life cycle
@@ -75,7 +101,7 @@ public class CrimeListFragment extends Fragment {
     // ======================================================================================
     // Update the UI if the activity became on top of the stack again
     // ======================================================================================
-    private void updateUI() {
+    public void updateUI() {
         CrimeLab crimeLab = CrimeLab.getInstance(getActivity());
         List<Crime> crimes = crimeLab.getCrimes();
         if (mAdapter == null) {
@@ -133,8 +159,8 @@ public class CrimeListFragment extends Fragment {
             case R.id.menu_item_new_crime:
                 Crime crime = new Crime();
                 CrimeLab.getInstance(getActivity()).addCrime(crime);
-                Intent it = CrimePagerActivity.newIntent(getActivity(), crime.getId());
-                startActivity(it);
+                updateUI();
+                mCallbacks.onCrimeSelected(crime);
                 return true;
 
             case R.id.menu_item_show_subtitle:
@@ -160,8 +186,7 @@ public class CrimeListFragment extends Fragment {
 
         @Override
         public void onClick(View v) {
-            Intent intent = CrimePagerActivity.newIntent(getActivity(), mCrime.getId());
-            startActivity(intent);
+            mCallbacks.onCrimeSelected(mCrime);
         }
 
         public CrimeHolder(View itemView) {
